@@ -3,9 +3,10 @@
 import { useInView } from "motion/react";
 import React, { useRef } from "react";
 import { Button } from "../ui/button";
-import { SiGithub, SiInstagram, SiLinkedin, SiX } from "react-icons/si";
+import { SiGithub, SiInstagram, SiX } from "react-icons/si";
 import { config } from "@/data/config";
 import Link from "next/link";
+import { Linkedin } from "lucide-react";
 
 const BUTTONS = [
   {
@@ -16,7 +17,7 @@ const BUTTONS = [
   {
     name: "LinkedIn",
     href: config.social.linkedin,
-    icon: <SiLinkedin size={"24"} color={"#fff"} />,
+    icon: <Linkedin size={24} color={"#fff"} />,
   },
   {
     name: "Twitter",
