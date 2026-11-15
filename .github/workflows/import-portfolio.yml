@@ -1,0 +1,69 @@
+name: Import and configure Aadil portfolio
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/import-portfolio.yml"
+permissions:
+  contents: write
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Import upstream 3D portfolio
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/Naresh-Khatri/3d-portfolio.git /tmp/upstream-portfolio
+          rsync -a --exclude=.git --exclude=.github --exclude=node_modules /tmp/upstream-portfolio/ ./
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/data/config.ts')
+          s=p.read_text()
+          s=s.replace('Naresh Khatri | Full-Stack Developer','Aadil Juraid S | Portfolio')
+          s=s.replace('Naresh Khatri','Aadil Juraid S').replace('Naresh','Aadil')
+          s=s.replace('naresh.khatri2345@gmail.com','').replace('https://nareshkhatri.dev','https://aadil-portfolio.pages.dev')
+          s=s.replace('naresh-khatri','Aamilsamsung').replace('3d-portfolio','Aadil')
+          for old in ['https://x.com/nothotchaddi','https://www.linkedin.com/in/naresh-khatri/','https://www.instagram.com/hotchaddi','https://www.facebook.com/HotChaddi/']:
+              s=s.replace(old,'')
+          p.write_text(s)
+          import json
+          p=Path('package.json'); pkg=json.loads(p.read_text())
+          pkg['name']='aadil-juraid-s-portfolio'
+          pkg['scripts']['preview:cloudflare']='opennextjs-cloudflare build && opennextjs-cloudflare preview'
+          pkg['scripts']['deploy:cloudflare']='opennextjs-cloudflare build && opennextjs-cloudflare deploy'
+          pkg.setdefault('devDependencies',{})['@opennextjs/cloudflare']='^1.15.0'
+          pkg['devDependencies']['wrangler']='^4.0.0'
+          p.write_text(json.dumps(pkg,indent=2)+'\n')
+          Path('wrangler.jsonc').write_text('''{
+            "name": "aadil-portfolio",
+            "main": ".open-next/worker.js",
+            "compatibility_date": "2026-11-01",
+            "compatibility_flags": ["nodejs_compat"],
+            "assets": { "directory": ".open-next/assets", "binding": "ASSETS" }
+          }\n''')
+          Path('open-next.config.ts').write_text('import { defineCloudflareConfig } from "@opennextjs/cloudflare";\nexport default defineCloudflareConfig();\n')
+          Path('.gitignore').open('a').write('\n.open-next/\n.wrangler/\n')
+          Path('CLOUDFLARE.md').write_text('''# Cloudflare deployment
+          
+          This is a Next.js application, not Vite. Deploy with **Cloudflare Workers** using OpenNext.
+          
+          1. Install dependencies with `pnpm install` (Node.js 20+).
+          2. Build with `pnpm run preview:cloudflare` to test locally.
+          3. In Cloudflare Workers & Pages, import this GitHub repository.
+          4. Build command: `npx opennextjs-cloudflare build`.
+          5. Deploy command: `npx opennextjs-cloudflare deploy`.
+          6. Configure the Cloudflare account and any optional secrets in Cloudflare.
+          
+          Before publishing, replace the original template's demo projects, biography, skill claims, social links, assets and contact integrations with Aadil's verified information. The imported template is not a factual personal biography.
+          
+          Original template: https://github.com/Naresh-Khatri/3d-portfolio (MIT license retained).
+          ''')
+          PY
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Import 3D portfolio and add Cloudflare Workers OpenNext setup'
+          git push
